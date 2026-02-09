@@ -1,25 +1,29 @@
-import { hiAnimeService } from '#services/hiAnimeService.js';
+import { gogoScraper } from '#services/gogoScraper.js';
 import { validationError } from '#utils/errors';
-import suggestionExtract from './suggestion.extract.js';
 
 export default async function suggestionHandler(c) {
   const { keyword } = c.req.valid('query');
 
   try {
-    const data = await hiAnimeService.fetchAjax(`/ajax/search/suggest?keyword=${keyword}`);
-    console.log(`Suggestion Ajax status: ${data?.status}, html length: ${data?.html?.length || 0}`);
+    const { results } = await gogoScraper.search(keyword, 1);
 
-    if (!data || !data.status) {
+    if (!results || results.length === 0) {
       return [];
     }
 
-    const suggestions = suggestionExtract(data.html);
-    console.log(`Extracted ${suggestions.length} suggestions`);
-    const response = suggestions.map(item => ({
-      ...item,
+    const response = results.map(item => ({
+      id: item.id,
       name: item.title,
-      jname: item.alternativeTitle
+      alternativeTitle: item.title, // Gogo doesn't provide alt title in search
+      poster: item.img,
+      aired: item.releaseDate || 'N/A',
+      type: 'TV', // Default as Gogo search doesn't provide type
+      duration: 'N/A', // Default as Gogo search doesn't provide duration
+      // Extra fields for compatibility if needed
+      jname: item.title,
+      moreInfo: [item.releaseDate]
     }));
+
     return response;
   } catch (error) {
     console.error('Suggestion Handler Error:', error);

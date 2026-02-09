@@ -9,37 +9,16 @@ export default async function searchHandler(c) {
     let { results, hasNextPage } = await gogoScraper.search(cleanKeyword, page);
 
     // Spelling insensitivity: If no results found, try suggestions
+    // Spelling insensitivity: If no results found, try suggestions/prefix
     if ((!results || results.length < 1) && page === 1) {
-      try {
-        const { hiAnimeService } = await import('#services/hiAnimeService.js');
-        const suggestionExtract = (await import('../../suggestion/suggestion.extract.js')).default;
-
-        let data = await hiAnimeService.fetchAjax(`/ajax/search/suggest?keyword=${encodeURIComponent(cleanKeyword.toLowerCase())}`);
-
-        // If no results for full keyword, try a prefix (aggressive fuzzy)
-        if ((!data || !data.status || !data.html || data.html.includes('No results found')) && cleanKeyword.length > 5) {
-          const prefix = cleanKeyword.substring(0, 5).toLowerCase();
-          const fallbackData = await hiAnimeService.fetchAjax(`/ajax/search/suggest?keyword=${encodeURIComponent(prefix)}`);
-          if (fallbackData && fallbackData.status && fallbackData.html && !fallbackData.html.includes('No results found')) {
-            data = fallbackData;
-          }
+      if (cleanKeyword.length > 5) {
+        const prefix = cleanKeyword.substring(0, 5);
+        console.log(`No results for '${cleanKeyword}', trying prefix '${prefix}'`);
+        const fallback = await gogoScraper.search(prefix, 1);
+        if (fallback.results && fallback.results.length > 0) {
+          results = fallback.results;
+          hasNextPage = fallback.hasNextPage;
         }
-
-        console.log(`HiAnime Suggestion Fallback status: ${data?.status}`);
-        if (data && data.status) {
-          const suggestions = suggestionExtract(data.html);
-          console.log(`Fallback Extracted ${suggestions.length} suggestions`);
-          if (Array.isArray(suggestions) && suggestions.length > 0) {
-            results = suggestions.map(item => ({
-              id: item.id.startsWith('hi:') ? item.id : `hi:${item.id}`,
-              name: item.title,
-              img: item.poster
-            }));
-            hasNextPage = false;
-          }
-        }
-      } catch (err) {
-        console.error('Search Suggestion Fallback Error:', err);
       }
     }
 
