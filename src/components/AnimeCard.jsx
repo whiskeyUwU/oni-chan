@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 
 const AnimeCard = ({ anime }) => {
     return (
-        <Link to={`/anime/${anime.id}`} className="group relative">
+        <Link to={`/details/${anime.id}`} className="group relative">
             <motion.div
                 whileHover={{ y: -5 }}
                 className="relative aspect-[3/4] rounded-xl overflow-hidden shadow-2xl bg-dark-light"

@@ -8,25 +8,23 @@ const Navbar = () => {
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const navigate = useNavigate();
-
     useEffect(() => {
-        // Temporarily disabled - suggestion endpoint not compatible with Jikan
-        // const delayDebounceFn = setTimeout(async () => {
-        //     if (keyword.length > 2) {
-        //         try {
-        //             const res = await searchSuggestions(keyword);
-        //             setSuggestions(res.suggestions || []);
-        //             setShowSuggestions(true);
-        //         } catch (err) {
-        //             console.error(err);
-        //         }
-        //     } else {
-        //         setSuggestions([]);
-        //         setShowSuggestions(false);
-        //     }
-        // }, 300);
+        const delayDebounceFn = setTimeout(async () => {
+            if (keyword.length > 1) { // Suggest starting from 2 characters
+                try {
+                    const res = await searchSuggestions(keyword);
+                    setSuggestions(res || []);
+                    setShowSuggestions(true);
+                } catch (err) {
+                    console.error(err);
+                }
+            } else {
+                setSuggestions([]);
+                setShowSuggestions(false);
+            }
+        }, 300);
 
-        // return () => clearTimeout(delayDebounceFn);
+        return () => clearTimeout(delayDebounceFn);
     }, [keyword]);
 
     const handleSearch = (e) => {
@@ -62,30 +60,45 @@ const Navbar = () => {
                             value={keyword}
                             onChange={(e) => setKeyword(e.target.value)}
                             onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                            onFocus={() => keyword.length > 2 && setShowSuggestions(true)}
+                            onFocus={() => keyword.length > 1 && setShowSuggestions(true)}
                         />
                     </div>
                 </form>
 
                 {showSuggestions && suggestions.length > 0 && (
-                    <div className="absolute top-full mt-2 w-full glass rounded-2xl overflow-hidden py-2 z-[60]">
-                        {suggestions.map((item, idx) => (
-                            <div
-                                key={idx}
-                                className="px-4 py-2 hover:bg-white/5 cursor-pointer flex items-center gap-3 transition-colors"
-                                onClick={() => {
-                                    navigate(`/anime/${item.id}`);
-                                    setKeyword('');
-                                    setShowSuggestions(false);
-                                }}
-                            >
-                                <img src={item.poster} alt="" className="w-10 h-14 object-cover rounded shadow-lg" />
-                                <div className="flex-1 overflow-hidden">
-                                    <div className="text-sm font-medium truncate">{item.name}</div>
-                                    <div className="text-xs text-gray-400">{item.jname}</div>
+                    <div className="absolute top-full mt-2 w-full glass-heavy rounded-2xl overflow-hidden py-3 z-[60] border border-white/10 shadow-2xl ring-1 ring-black/50">
+                        <div className="px-4 pb-2 mb-2 border-b border-white/5 flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Suggestions</span>
+                            <span className="text-[10px] text-accent/50 font-bold">{suggestions.length} found</span>
+                        </div>
+                        <div className="max-h-[60vh] overflow-y-auto custom-scrollbar">
+                            {suggestions.map((item, idx) => (
+                                <div
+                                    key={idx}
+                                    className="px-4 py-2 hover:bg-white/5 cursor-pointer flex items-center gap-4 transition-all group"
+                                    onMouseDown={(e) => {
+                                        e.preventDefault(); // Prevent input onBlur from firing before navigation
+                                        navigate(`/details/${item.id}`);
+                                        setKeyword('');
+                                        setShowSuggestions(false);
+                                    }}
+                                >
+                                    <div className="relative flex-shrink-0">
+                                        <img src={item.poster} alt="" className="w-10 h-14 object-cover rounded shadow-lg border border-white/10 group-hover:border-accent/30 transition-colors" />
+                                        <div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity rounded" />
+                                    </div>
+                                    <div className="flex-1 overflow-hidden">
+                                        <div className="grow text-sm font-bold truncate group-hover:text-accent transition-colors">{item.name}</div>
+                                        <div className="text-[11px] text-gray-400 truncate mt-0.5">{item.jname}</div>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-[9px] px-1.5 py-0.5 bg-white/5 rounded text-gray-400 font-bold uppercase tracking-wider">{item.type || 'TV'}</span>
+                                            <span className="text-[9px] text-gray-500">{item.aired?.split(',')[1] || item.aired || ''}</span>
+                                        </div>
+                                    </div>
+                                    <ChevronRight size={14} className="text-gray-600 group-hover:text-accent group-hover:translate-x-1 transition-all" />
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
